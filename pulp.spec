@@ -139,8 +139,8 @@ cp server/etc/httpd/conf.d/pulp_apache_22.conf %{buildroot}/%{_sysconfdir}/httpd
 cp server/etc/default/upstart_pulp_celerybeat %{buildroot}/%{_sysconfdir}/default/pulp_celerybeat
 cp server/etc/default/upstart_pulp_resource_manager %{buildroot}/%{_sysconfdir}/default/pulp_resource_manager
 cp server/etc/default/upstart_pulp_workers %{buildroot}/%{_sysconfdir}/default/pulp_workers
-ln -s %{_initddir}/pulp_workers %{buildroot}/%{_initddir}/pulp_resource_manager
-cp -d server/etc/rc.d/init.d/* %{buildroot}/%{_initddir}/
+ln -s %{_sysconfdir}/rc.d/init.d/pulp_workers %{buildroot}/%{_sysconfdir}/rc.d/init.d/pulp_resource_manager
+cp -d server/etc/rc.d/init.d/* %{buildroot}/%{_sysconfdir}/rc.d/init.d/
 # We don't want to install pulp-manage-workers in upstart systems
 rm -rf %{buildroot}/%{_libexecdir}
 %else
@@ -256,9 +256,9 @@ Pulp provides replication, access, and accounting for software repositories.
 %if %{pulp_systemd} == 0
 # Install the init scripts
 %defattr(755,root,root,-)
-%config %{_initddir}/pulp_celerybeat
-%config %{_initddir}/pulp_workers
-%config %{_initddir}/pulp_resource_manager
+%config %{_sysconfdir}/rc.d/init.d/pulp_celerybeat
+%config %{_sysconfdir}/rc.d/init.d/pulp_workers
+%config %{_sysconfdir}/rc.d/init.d/pulp_resource_manager
 %else
 # Install the systemd unit files
 %defattr(-,root,root,-)
