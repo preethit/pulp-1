@@ -53,7 +53,7 @@ class Authenticator(object):
 
     @staticmethod
     def rsa_key():
-        fp = open(cfg.messaging.rsa_key)
+        fp = open(cfg.filesystem.rsa_key)
         try:
             pem = fp.read()
             bfr = BIO.MemoryBuffer(pem)

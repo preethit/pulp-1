@@ -309,10 +309,9 @@ sed -e "$MATCH_SECTION,/^$/s/^$KEY$/$KEY $(generate)/" \
     -i %{_sysconfdir}/%{name}/server.conf
 
 # RSA key pair
-KEY_DIR="%{_sysconfdir}/pki/%{name}/messaging"
+KEY_DIR="%{_sysconfdir}/pki/%{name}"
 KEY_PATH="$KEY_DIR/rsa.key"
 KEY_PATH_PUB="$KEY_DIR/rsa_pub.key"
-mkdir -p $KEY_DIR
 if [ ! -f $KEY_PATH ]
 then
   openssl genrsa -out $KEY_PATH 1024 &> /dev/null
@@ -477,10 +476,9 @@ A tool used to administer a pulp consumer.
 
 %post consumer-client
 # RSA key pair
-KEY_DIR="%{_sysconfdir}/pki/{name}/messaging"
+KEY_DIR="%{_sysconfdir}/pki/{name}/consumer"
 KEY_PATH="$KEY_DIR/rsa.key"
 KEY_PATH_PUB="$KEY_DIR/rsa_pub.key"
-mkdir -p $KEY_DIR
 if [ ! -f $KEY_PATH ]
 then
   openssl genrsa -out $KEY_PATH 1024 &> /dev/null
