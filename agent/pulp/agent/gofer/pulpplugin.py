@@ -17,17 +17,18 @@ Contains recurring actions and remote classes.
 """
 
 import os
-import errno
 
 from hashlib import sha256
 from logging import getLogger
 
+from M2Crypto import RSA, BIO
 from M2Crypto.X509 import X509Error
 
 from gofer.decorators import *
 from gofer.agent.plugin import Plugin
 from gofer.pmon import PathMonitor
 from gofer.agent.rmi import Context
+from gofer.messaging.auth import ValidationFailed
 
 from pulp.common.bundle import Bundle
 from pulp.agent.lib.dispatcher import Dispatcher
@@ -48,24 +49,37 @@ cfg = pulp_conf.graph()
 # --- utils ------------------------------------------------------------------
 
 
-def secret():
-    """
-    Get the shared secret used for auth of RMI requests.
-    :return: The sha256 for the certificate
-    :rtype: str
-    """
-    try:
-        bundle = ConsumerX509Bundle()
-        content = bundle.read()
-        certificate = bundle.split(content)[1]
-        h = sha256()
-        h.update(certificate)
-        return h.hexdigest()
-    except IOError, e:
-        if e.errno != errno.ENOENT:
-            raise
-    except Exception:
-        log.exception('generate shared secret failed')
+class Authenticator(object):
+
+    @staticmethod
+    def rsa_key():
+        fp = open(cfg.messaging.rsa_key)
+        try:
+            pem = fp.read()
+            bfr = BIO.MemoryBuffer(pem)
+            return RSA.load_key_bio(bfr)
+        finally:
+            fp.close()
+
+    @staticmethod
+    def rsa_pub():
+        fp = open(cfg.server.rsa_pub)
+        try:
+            pem = fp.read()
+            bfr = BIO.MemoryBuffer(pem)
+            return RSA.load_pub_key_bio(bfr)
+        finally:
+            fp.close()
+
+    def sign(self, message):
+        key = self.rsa_key()
+        signature = key.sign(message)
+        return signature
+
+    def validate(self, uuid, message, signature):
+        key = self.rsa_pub()
+        if not key.verify(message, signature):
+            raise ValidationFailed(message)
 
 
 class ConsumerX509Bundle(Bundle):
@@ -202,6 +216,8 @@ class RegistrationMonitor:
             plugin_conf.messaging.cacert = cfg.messaging.cacert
             plugin_conf.messaging.clientcert = cfg.messaging.clientcert or \
                 os.path.join(cfg.filesystem.id_cert_dir, cfg.filesystem.id_cert_filename)
+            plugin_conf.messaging.transport = cfg.messaging.transport
+            plugin.authenticator = Authenticator()
         plugin.setuuid(consumer_id)
 
 
@@ -243,7 +259,7 @@ class Consumer:
     Consumer Management.
     """
 
-    @remote(secret=secret)
+    @remote
     def unregistered(self):
         """
         Notification that the consumer had been unregistered.
@@ -258,7 +274,7 @@ class Consumer:
         report = dispatcher.clean(conduit)
         return report.dict()
 
-    @remote(secret=secret)
+    @remote
     def bind(self, bindings, options):
         """
         Bind to the specified repository ID.
@@ -277,7 +293,7 @@ class Consumer:
         report = dispatcher.bind(conduit, bindings, options)
         return report.dict()
 
-    @remote(secret=secret)
+    @remote
     def unbind(self, bindings, options):
         """
         Unbind to the specified repository ID.
@@ -301,7 +317,7 @@ class Content:
     Content Management.
     """
 
-    @remote(secret=secret)
+    @remote
     def install(self, units, options):
         """
         Install the specified content units using the specified options.
@@ -319,7 +335,7 @@ class Content:
         report = dispatcher.install(conduit, units, options)
         return report.dict()
 
-    @remote(secret=secret)
+    @remote
     def update(self, units, options):
         """
         Update the specified content units using the specified options.
@@ -337,7 +353,7 @@ class Content:
         report = dispatcher.update(conduit, units, options)
         return report.dict()
 
-    @remote(secret=secret)
+    @remote
     def uninstall(self, units, options):
         """
         Uninstall the specified content units using the specified options.
@@ -361,7 +377,7 @@ class Profile:
     Profile Management
     """
 
-    @remote(secret=secret)
+    @remote
     def send(self):
         """
         Send the content profile(s) to the server.

@@ -56,18 +56,17 @@ _default_values = {
     },
     'logs': {
         'config': '/etc/pulp/logging/basic.cfg',
-        'db_config' : '/etc/pulp/logging/db.cfg',
+        'db_config': '/etc/pulp/logging/db.cfg',
     },
     'messaging': {
         'url': 'tcp://localhost:5672',
+        'transport': 'qpid',
         'cacert': '/etc/pki/qpid/ca/ca.crt',
         'clientcert': '/etc/pki/qpid/client/client.pem',
+        'auth_enabled': 'true',
+        'rsa_key': '/etc/pki/pulp/messaging/rsa.key',
+        'rsa_key_pub': '/etc/pki/pulp/messaging/rsa_pub.key',
         'topic_exchange': 'amq.topic',
-        'install_timeout': '10:600',
-        'update_timeout': '10:600',
-        'uninstall_timeout': '10:600',
-        'bind_timeout': '2592000:600',
-        'unbind_timeout': '2592000:600',
     },
     'scheduler': {
         'dispatch_interval': '30',

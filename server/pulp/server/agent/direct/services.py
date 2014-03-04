@@ -16,10 +16,9 @@ from logging import getLogger
 from pulp.server.config import config
 from pulp.server.async.task_status_manager import TaskStatusManager
 from pulp.server.managers import factory as managers
-from gofer.messaging.broker import Broker
+from gofer.messaging import Broker
 from gofer.messaging import Queue
 from gofer.rmi.async import ReplyConsumer, Listener
-from gofer.rmi.async import WatchDog, Journal
 
 
 log = getLogger(__name__)
@@ -30,15 +29,12 @@ class Services:
     Agent services.
     :cvar REPLY_QUEUE: The agent RMI reply queue.
     :type REPLY_QUEUE: str
-    :cvar watchdog: Asynchronous RMI watchdog.
-    :type watchdog: WatchDog
     :cvar reply_handler: Asynchronous RMI reply listener.
     :type reply_handler: ReplyHandler
     :cvar heartbeat_listener: Agent heartbeat listener.
     :type heartbeat_listener: HeartbeatListener
     """
 
-    watchdog = None
     reply_handler = None
     heartbeat_listener = None
 
@@ -55,14 +51,9 @@ class Services:
     @classmethod
     def start(cls):
         url = config.get('messaging', 'url')
-        # watchdog
-        journal = Journal('/var/lib/pulp/journal/watchdog')
-        cls.watchdog = WatchDog(url=url, journal=journal)
-        cls.watchdog.start()
-        log.info('AMQP watchdog started')
         # asynchronous reply
         cls.reply_handler = ReplyHandler(url)
-        cls.reply_handler.start(cls.watchdog)
+        cls.reply_handler.start()
         log.info('AMQP reply handler started')
 
 
@@ -132,13 +123,11 @@ class ReplyHandler(Listener):
 
     # --- agent replies ------------------------------------------------------
 
-    def start(self, watchdog):
+    def start(self):
         """
         Start the reply handler (thread)
-        :param watchdog: A watchdog object used to synthesize timeouts.
-        :type watchdog: Watchdog
         """
-        self.consumer.start(self, watchdog=watchdog)
+        self.consumer.start(self)
         log.info('Task reply handler, started.')
 
     def started(self, reply):

@@ -32,6 +32,7 @@ from pulp.server.webservices.controllers.base import JSONController
 from pulp.server.webservices.controllers.search import SearchController
 from pulp.server.webservices.controllers.decorators import auth_required
 from pulp.server.webservices import serialization
+from pulp.server.config import config as pulp_conf
 import pulp.server.managers.factory as managers
 
 

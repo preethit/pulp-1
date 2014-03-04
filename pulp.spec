@@ -308,6 +308,17 @@ sed -e "$MATCH_SECTION,/^$/s/^$KEY$/$KEY $(generate)/" \
     -e "$MATCH_SECTION,/^$/s/^$SECRET$/$SECRET $(generate)/" \
     -i %{_sysconfdir}/%{name}/server.conf
 
+# RSA key pair
+KEY_DIR="%{_sysconfdir}/pki/%{name}/messaging"
+KEY_PATH="$KEY_DIR/rsa.key"
+KEY_PATH_PUB="$KEY_DIR/rsa_pub.key"
+mkdir -p $KEY_DIR
+if [ ! -f $KEY_PATH ]
+then
+  openssl genrsa -out $KEY_PATH 1024 &> /dev/null
+  openssl rsa -in $KEY_PATH -pubout > $KEY_PATH_PUB 2> /dev/null
+fi
+
 # CA certificate
 if [ $1 -eq 1 ]; # not an upgrade
 then
@@ -463,6 +474,18 @@ A tool used to administer a pulp consumer.
 %{_bindir}/%{name}-consumer
 %ghost %{_sysconfdir}/pki/%{name}/consumer/consumer-cert.pem
 %doc README LICENSE
+
+%post consumer-client
+# RSA key pair
+KEY_DIR="%{_sysconfdir}/pki/{name}/messaging"
+KEY_PATH="$KEY_DIR/rsa.key"
+KEY_PATH_PUB="$KEY_DIR/rsa_pub.key"
+mkdir -p $KEY_DIR
+if [ ! -f $KEY_PATH ]
+then
+  openssl genrsa -out $KEY_PATH 1024 &> /dev/null
+  openssl rsa -in $KEY_PATH -pubout > $KEY_PATH_PUB 2> /dev/null
+fi
 
 
 # ---- Agent -------------------------------------------------------------------
