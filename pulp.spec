@@ -183,6 +183,10 @@ popd
 %endif # End server installation block
 
 # Everything else installation
+
+# Common
+cp -R common/bin/* %{buildroot}/%{_bindir}
+
 # Configuration
 cp -R agent/etc/pulp/agent/agent.conf %{buildroot}/%{_sysconfdir}/%{name}/agent/
 cp -R client_admin/etc/pulp/admin/admin.conf %{buildroot}/%{_sysconfdir}/%{name}/admin/
@@ -309,14 +313,7 @@ sed -e "$MATCH_SECTION,/^$/s/^$KEY$/$KEY $(generate)/" \
     -i %{_sysconfdir}/%{name}/server.conf
 
 # RSA key pair
-KEY_DIR="%{_sysconfdir}/pki/%{name}"
-KEY_PATH="$KEY_DIR/rsa.key"
-KEY_PATH_PUB="$KEY_DIR/rsa_pub.key"
-if [ ! -f $KEY_PATH ]
-then
-  openssl genrsa -out $KEY_PATH 1024 &> /dev/null
-  openssl rsa -in $KEY_PATH -pubout > $KEY_PATH_PUB 2> /dev/null
-fi
+pulp-gen-rsa-keys
 
 # CA certificate
 if [ $1 -eq 1 ]; # not an upgrade
@@ -345,6 +342,9 @@ A collection of components that are common between the pulp server and client.
 %defattr(-,root,root,-)
 %dir %{_usr}/lib/%{name}
 %dir %{python_sitelib}/%{name}
+%ghost %{_sysconfdir}/pki/%{name}/rsa.key
+%ghost %{_sysconfdir}/pki/%{name}/rsa_pub.key
+%{_bindir}/pulp-gen-rsa-keys
 %{python_sitelib}/%{name}/__init__.*
 %{python_sitelib}/%{name}/common/
 %{python_sitelib}/pulp_common*.egg-info
@@ -476,14 +476,7 @@ A tool used to administer a pulp consumer.
 
 %post consumer-client
 # RSA key pair
-KEY_DIR="%{_sysconfdir}/pki/{name}/consumer"
-KEY_PATH="$KEY_DIR/rsa.key"
-KEY_PATH_PUB="$KEY_DIR/rsa_pub.key"
-if [ ! -f $KEY_PATH ]
-then
-  openssl genrsa -out $KEY_PATH 1024 &> /dev/null
-  openssl rsa -in $KEY_PATH -pubout > $KEY_PATH_PUB 2> /dev/null
-fi
+pulp-gen-rsa-keys
 
 
 # ---- Agent -------------------------------------------------------------------

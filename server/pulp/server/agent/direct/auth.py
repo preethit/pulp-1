@@ -24,7 +24,7 @@ class Authenticator(object):
 
     @staticmethod
     def rsa_key():
-        path = pulp_conf.get('security', 'rsa_key')
+        path = pulp_conf.get('messaging', 'rsa_key')
         with open(path) as fp:
             pem = fp.read()
             bfr = BIO.MemoryBuffer(pem)

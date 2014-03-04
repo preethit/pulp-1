@@ -64,6 +64,8 @@ _default_values = {
         'cacert': '/etc/pki/qpid/ca/ca.crt',
         'clientcert': '/etc/pki/qpid/client/client.pem',
         'auth_enabled': 'true',
+        'rsa_key': '/etc/pki/pulp/rsa.key',
+        'rsa_key_pub': '/etc/pki/pulp/rsa_pub.key',
         'topic_exchange': 'amq.topic',
     },
     'scheduler': {
@@ -76,8 +78,6 @@ _default_values = {
         'user_cert_expiration': '7',
         'consumer_cert_expiration': '3650',
         'serial_number_path': '/var/lib/pulp/sn.dat',
-        'rsa_key': '/etc/pki/pulp/rsa.key',
-        'rsa_key_pub': '/etc/pki/pulp/rsa_pub.key',
     },
     'server': {
         'server_name': socket.gethostname(),
