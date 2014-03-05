@@ -33,7 +33,7 @@ from logging import getLogger
 
 from gofer.proxy import Agent
 
-from pulp.server.agent.direct.auth import Authenticator
+from pulp.server.agent.auth import Authenticator
 
 
 log = getLogger(__name__)

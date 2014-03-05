@@ -13,8 +13,9 @@
 from unittest import TestCase
 
 from mock import patch, Mock
-from gofer.messaging import Envelope
-from gofer.messaging.broker import URL, Broker
+from gofer.messaging.model import Document
+from gofer.messaging import Broker
+from gofer.transport.broker import URL
 from gofer.rmi.async import Started, Succeeded, Failed, Progress
 
 from pulp.server.config import config as pulp_conf
@@ -33,12 +34,9 @@ class TestServices(TestCase):
         self.assertEqual(broker.cacert, ca_cert)
         self.assertEqual(broker.clientcert, client_cert)
 
-    @patch('pulp.server.agent.direct.services.Journal')
     @patch('pulp.server.agent.direct.services.ReplyHandler')
-    @patch('gofer.rmi.async.WatchDog')
-    def test_start(self, mock_watchdog, mock_reply_handler, mock_journal):
+    def test_start(self, mock_reply_handler):
         Services.start()
-        mock_watchdog.start.assert_called()
         mock_reply_handler.start.assert_called()
 
 
@@ -48,9 +46,8 @@ class TestReplyHandler(TestCase):
     def test_start(self, mock_start):
         url = 'http://broker'
         handler = ReplyHandler(url)
-        watchdog = Mock()
-        handler.start(watchdog)
-        mock_start.assert_called_with(handler, watchdog=watchdog)
+        handler.start()
+        mock_start.assert_called_with(handler)
 
 
     @patch('pulp.server.async.task_status_manager.TaskStatusManager.set_task_succeeded')
@@ -67,7 +64,7 @@ class TestReplyHandler(TestCase):
             'distributor_id': dist_id
         }
         result = dict(retval=dispatch_report)
-        envelope = Envelope(routing=['A', 'B'], result=result, any=call_context)
+        envelope = Document(routing=['A', 'B'], result=result, any=call_context)
         reply = Succeeded(envelope)
         handler = ReplyHandler('')
         handler.succeeded(reply)
@@ -77,7 +74,6 @@ class TestReplyHandler(TestCase):
 
     @patch('pulp.server.async.task_status_manager.TaskStatusManager.set_task_started')
     def test_started(self, mock_task_started):
-        dispatch_report = dict(succeeded=True)
         task_id = 'task_1'
         consumer_id = 'consumer_1'
         repo_id = 'repo_1'
@@ -88,7 +84,7 @@ class TestReplyHandler(TestCase):
             'repo_id': repo_id,
             'distributor_id': dist_id
         }
-        envelope = Envelope(routing=['A', 'B'], any=call_context)
+        envelope = Document(routing=['A', 'B'], any=call_context)
         reply = Started(envelope)
         handler = ReplyHandler('')
         handler.started(reply)
@@ -101,7 +97,7 @@ class TestReplyHandler(TestCase):
         task_id = 'task_1'
         call_context = {'task_id': task_id}
         progress_report = {'step': 'step-1'}
-        envelope = Envelope(routing=['A', 'B'], any=call_context, details=progress_report)
+        envelope = Document(routing=['A', 'B'], any=call_context, details=progress_report)
         reply = Progress(envelope)
         handler = ReplyHandler('')
         handler.progress(reply)
@@ -129,7 +125,7 @@ class TestReplyHandler(TestCase):
             xstate={'trace': 'stack-trace'},
             xargs=[]
         )
-        envelope = Envelope(routing=['A', 'B'], result=raised, any=call_context)
+        envelope = Document(routing=['A', 'B'], result=raised, any=call_context)
         reply = Failed(envelope)
         handler = ReplyHandler('')
         handler.failed(reply)
@@ -228,8 +224,8 @@ class TestReplyHandler(TestCase):
             'distributor_id': dist_id
         }
         dispatch_report = dict(succeeded=True)
-        result = Envelope(retval=dispatch_report)
-        envelope = Envelope(routing=['A', 'B'], result=result, any=call_context)
+        result = Document(retval=dispatch_report)
+        envelope = Document(routing=['A', 'B'], result=result, any=call_context)
         reply = Succeeded(envelope)
         handler = ReplyHandler('')
         handler.succeeded(reply)
@@ -254,8 +250,8 @@ class TestReplyHandler(TestCase):
             'distributor_id': dist_id
         }
         dispatch_report = dict(succeeded=False)
-        result = Envelope(retval=dispatch_report)
-        envelope = Envelope(routing=['A', 'B'], result=result, any=call_context)
+        result = Document(retval=dispatch_report)
+        envelope = Document(routing=['A', 'B'], result=result, any=call_context)
         reply = Succeeded(envelope)
         handler = ReplyHandler('')
         handler.succeeded(reply)
@@ -280,8 +276,8 @@ class TestReplyHandler(TestCase):
             'distributor_id': dist_id
         }
         dispatch_report = dict(succeeded=True)
-        result = Envelope(retval=dispatch_report)
-        envelope = Envelope(routing=['A', 'B'], result=result, any=call_context)
+        result = Document(retval=dispatch_report)
+        envelope = Document(routing=['A', 'B'], result=result, any=call_context)
         reply = Succeeded(envelope)
         handler = ReplyHandler('')
         handler.succeeded(reply)
@@ -306,8 +302,8 @@ class TestReplyHandler(TestCase):
             'distributor_id': dist_id
         }
         dispatch_report = dict(succeeded=False)
-        result = Envelope(retval=dispatch_report)
-        envelope = Envelope(routing=['A', 'B'], result=result, any=call_context)
+        result = Document(retval=dispatch_report)
+        envelope = Document(routing=['A', 'B'], result=result, any=call_context)
         reply = Succeeded(envelope)
         handler = ReplyHandler('')
         handler.succeeded(reply)
@@ -338,7 +334,7 @@ class TestReplyHandler(TestCase):
             xstate={'trace': 'stack-trace'},
             xargs=[]
         )
-        envelope = Envelope(routing=['A', 'B'], result=raised, any=call_context)
+        envelope = Document(routing=['A', 'B'], result=raised, any=call_context)
         reply = Failed(envelope)
         handler = ReplyHandler('')
         handler.failed(reply)
@@ -369,7 +365,7 @@ class TestReplyHandler(TestCase):
             xstate={'trace': 'stack-trace'},
             xargs=[]
         )
-        envelope = Envelope(routing=['A', 'B'], result=raised, any=call_context)
+        envelope = Document(routing=['A', 'B'], result=raised, any=call_context)
         reply = Failed(envelope)
         handler = ReplyHandler('')
         handler.failed(reply)

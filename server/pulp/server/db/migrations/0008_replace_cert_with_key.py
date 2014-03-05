@@ -11,9 +11,9 @@
 
 from pulp.server.db.model.consumer import Consumer
 
-RSA_KEY = 'rsa_key'
-KEY_QUERY = {RSA_KEY: {'$exists': False}}
-KEY_UPDATE = {'$set': {RSA_KEY: None}}
+RSA_PUB = 'rsa_pub'
+KEY_QUERY = {RSA_PUB: {'$exists': False}}
+KEY_UPDATE = {'$set': {RSA_PUB: None}}
 
 CERTIFICATE = 'certificate'
 CRT_QUERY = {CERTIFICATE: {'$exists': True}}
@@ -22,7 +22,7 @@ CRT_UPDATE = {'$unset': {CERTIFICATE: 1}}
 
 def migrate(*args, **kwargs):
     """
-    - Add the rsa_key.
+    - Add the rsa_pub.
     - Remove the certificate.
     """
     collection = Consumer.get_collection()

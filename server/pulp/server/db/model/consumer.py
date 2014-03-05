@@ -41,8 +41,8 @@ class Consumer(Model):
     :ivar capabilities: operations permitted on the consumer
     :type capabilities: dict
 
-    :ivar rsa_key: The consumer's RSA public key used for message authentication.
-    :type rsa_key: str
+    :ivar rsa_pub: The consumer's RSA public key used for message authentication.
+    :type rsa_pub: str
     """
     RESOURCE_TEMPLATE = 'pulp:consumer:%s'
 
@@ -50,15 +50,34 @@ class Consumer(Model):
     unique_indices = ('id',)
     search_indices = ('notes',)
 
-    def __init__(self, consumer_id, display_name,
-                 description=None, notes=None, capabilities=None, rsa_key=None):
+    def __init__(self,
+                 consumer_id,
+                 display_name,
+                 description=None,
+                 notes=None,
+                 capabilities=None,
+                 rsa_pub=None):
+        """
+        :param consumer_id: uniquely identifies the consumer
+        :type consumer_id: str
+        :param display_name: user-friendly name of the consumer
+        :type display_name: str
+        :param description: user-friendly description of the consumer
+        :type description: str
+        :param notes: arbitrary key-value pairs pragmatically describing the consumer
+        :type notes: dict
+        :param capabilities: operations permitted on the consumer
+        :type capabilities: dict
+        :param rsa_pub: The consumer's RSA public key used for authentication.
+        :type rsa_pub: str
+        """
         super(Consumer, self).__init__()
         self.id = consumer_id
         self.display_name = display_name
         self.description = description
         self.notes = notes or {}
         self.capabilities = capabilities or {}
-        self.rsa_key = rsa_key
+        self.rsa_pub = rsa_pub
 
     @classmethod
     def build_resource_tag(cls, consumer_id):

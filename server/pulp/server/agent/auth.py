@@ -14,13 +14,15 @@ from gofer.messaging.auth import ValidationFailed
 
 from pulp.server.config import config as pulp_conf
 from pulp.server.managers import factory as managers
+from pulp.common.config import parse_bool
 
 
 class Authenticator(object):
 
     @property
     def enabled(self):
-        return pulp_conf.getbool('messaging', 'auth_enabled')
+        enabled = pulp_conf.get('messaging', 'auth_enabled')
+        return parse_bool(enabled)
 
     @staticmethod
     def rsa_key():
@@ -32,10 +34,10 @@ class Authenticator(object):
 
     @staticmethod
     def rsa_pub(consumer_id):
-        rsa_key = 'rsa_key'
+        rsa_pub = 'rsa_pub'
         manager = managers.consumer_manager()
-        consumer = manager.get_consumer(consumer_id, fields=[rsa_key])
-        pem = consumer[rsa_key]
+        consumer = manager.get_consumer(consumer_id, fields=[rsa_pub])
+        pem = consumer[rsa_pub]
         bfr = BIO.MemoryBuffer(pem)
         return RSA.load_pub_key_bio(bfr)
 
@@ -50,5 +52,8 @@ class Authenticator(object):
         if not self.enabled:
             return
         key = self.rsa_pub(uuid)
-        if not key.verify(message, signature):
+        try:
+            if not key.verify(message, signature):
+                raise ValidationFailed(message)
+        except RSA.RSAError:
             raise ValidationFailed(message)

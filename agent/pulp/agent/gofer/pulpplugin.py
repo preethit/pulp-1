@@ -18,7 +18,6 @@ Contains recurring actions and remote classes.
 
 import os
 
-from hashlib import sha256
 from logging import getLogger
 
 from M2Crypto import RSA, BIO
@@ -78,7 +77,10 @@ class Authenticator(object):
 
     def validate(self, uuid, message, signature):
         key = self.rsa_pub()
-        if not key.verify(message, signature):
+        try:
+            if not key.verify(message, signature):
+                raise ValidationFailed(message)
+        except RSA.RSAError:
             raise ValidationFailed(message)
 
 

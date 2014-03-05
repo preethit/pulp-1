@@ -51,11 +51,11 @@ class ConsumerManagerTests(base.PulpServerTests):
         description = 'Test Consumer 1'
         notes = {'note1': 'value1'}
         capabilities = {}
-        rsa_key = 'fake-key'
+        rsa_pub = 'fake-key'
 
         # Test
         created, certificate = self.manager.register(
-            consumer_id, name, description, notes=notes, capabilities=capabilities, rsa_key=rsa_key)
+            consumer_id, name, description, notes=notes, capabilities=capabilities, rsa_pub=rsa_pub)
 
         # Verify
         consumers = list(Consumer.get_collection().find())
@@ -66,13 +66,13 @@ class ConsumerManagerTests(base.PulpServerTests):
         self.assertEqual(name, consumer['display_name'])
         self.assertEqual(description, consumer['description'])
         self.assertEqual(notes, consumer['notes'])
-        self.assertEqual(rsa_key, consumer['rsa_key'])
+        self.assertEqual(rsa_pub, consumer['rsa_pub'])
 
         self.assertEqual(consumer_id, created['id'])
         self.assertEqual(name, created['display_name'])
         self.assertEqual(description, created['description'])
         self.assertEqual(notes, created['notes'])
-        self.assertEqual(rsa_key, consumer['rsa_key'])
+        self.assertEqual(rsa_pub, consumer['rsa_pub'])
 
     def test_create_defaults(self):
         """

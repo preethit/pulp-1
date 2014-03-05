@@ -31,11 +31,12 @@ class TestAgent(TestCase):
 class TestConsumerCapability(TestCase):
 
     @patch('pulp.server.agent.direct.pulpagent.Agent')
-    def test_unregistered(self, mock_gofer_agent):
+    @patch('pulp.server.agent.direct.pulpagent.Authenticator')
+    def test_unregistered(self, mock_authenticator, mock_gofer_agent):
         context = Mock()
         context.uuid = '123'
         context.url = 'http://broker.com'
-        context.secret = '123-secret'
+        context.transport = 'qpid'
 
         mock_agent = Mock()
         mock_gofer_agent.return_value = mock_agent
@@ -49,20 +50,23 @@ class TestConsumerCapability(TestCase):
         # validation
 
         mock_gofer_agent.assert_called_with(
-            context.uuid, url=context.url, secret=context.secret, async=True)
+            context.uuid,
+            url=context.url,
+            authenticator=mock_authenticator(),
+            transport=context.transport,
+            async=True)
 
         mock_consumer.unregistered.assert_called_with()
 
     @patch('pulp.server.agent.direct.pulpagent.Agent')
-    def test_bind(self, mock_gofer_agent):
+    @patch('pulp.server.agent.direct.pulpagent.Authenticator')
+    def test_bind(self, mock_authenticator, mock_gofer_agent):
         context = Mock()
         context.uuid = '123'
         context.url = 'http://broker.com'
-        context.secret = '123-secret'
+        context.transport = 'qpid'
         context.details = {'task_id': '4567'}
-        context.get_timeout = Mock(return_value=90)
         context.reply_queue = 'pulp.task'
-        context.watchdog = 'pulp-watchdog'
 
         mock_agent = Mock()
         mock_gofer_agent.return_value = mock_agent
@@ -78,23 +82,21 @@ class TestConsumerCapability(TestCase):
             context.uuid,
             ctag=context.reply_queue,
             url=context.url,
-            secret=context.secret,
-            timeout=context.get_timeout(),
-            watchdog=context.watchdog,
+            transport=context.transport,
+            authenticator=mock_authenticator(),
             any=context.details)
 
         mock_consumer.bind.assert_called_with(bindings, options)
 
     @patch('pulp.server.agent.direct.pulpagent.Agent')
-    def test_unbind(self, mock_gofer_agent):
+    @patch('pulp.server.agent.direct.pulpagent.Authenticator')
+    def test_unbind(self, mock_authenticator, mock_gofer_agent):
         context = Mock()
         context.uuid = '123'
         context.url = 'http://broker.com'
-        context.secret = '123-secret'
+        context.transport = 'qpid'
         context.details = {'task_id': '4567'}
-        context.get_timeout = Mock(return_value=90)
         context.reply_queue = 'pulp.task'
-        context.watchdog = 'pulp-watchdog'
 
         mock_agent = Mock()
         mock_gofer_agent.return_value = mock_agent
@@ -110,9 +112,8 @@ class TestConsumerCapability(TestCase):
             context.uuid,
             ctag=context.reply_queue,
             url=context.url,
-            secret=context.secret,
-            timeout=context.get_timeout(),
-            watchdog=context.watchdog,
+            transport=context.transport,
+            authenticator=mock_authenticator(),
             any=context.details)
 
         mock_consumer.unbind.assert_called_with(bindings, options)
@@ -121,15 +122,14 @@ class TestConsumerCapability(TestCase):
 class TestContentCapability(TestCase):
 
     @patch('pulp.server.agent.direct.pulpagent.Agent')
-    def test_install(self, mock_gofer_agent):
+    @patch('pulp.server.agent.direct.pulpagent.Authenticator')
+    def test_install(self, mock_authenticator, mock_gofer_agent):
         context = Mock()
         context.uuid = '123'
         context.url = 'http://broker.com'
-        context.secret = '123-secret'
+        context.transport = 'qpid'
         context.details = {'task_id': '4567'}
-        context.get_timeout = Mock(return_value=90)
         context.reply_queue = 'pulp.task'
-        context.watchdog = 'pulp-watchdog'
 
         mock_agent = Mock()
         mock_gofer_agent.return_value = mock_agent
@@ -145,24 +145,21 @@ class TestContentCapability(TestCase):
             context.uuid,
             ctag=context.reply_queue,
             url=context.url,
-            secret=context.secret,
-            timeout=context.get_timeout(),
-            watchdog=context.watchdog,
+            transport=context.transport,
+            authenticator=mock_authenticator(),
             any=context.details)
 
         mock_content.install.assert_called_with(units, options)
 
-
     @patch('pulp.server.agent.direct.pulpagent.Agent')
-    def test_update(self, mock_gofer_agent):
+    @patch('pulp.server.agent.direct.pulpagent.Authenticator')
+    def test_update(self, mock_authenticator, mock_gofer_agent):
         context = Mock()
         context.uuid = '123'
         context.url = 'http://broker.com'
-        context.secret = '123-secret'
+        context.transport = 'qpid'
         context.details = {'task_id': '4567'}
-        context.get_timeout = Mock(return_value=90)
         context.reply_queue = 'pulp.task'
-        context.watchdog = 'pulp-watchdog'
 
         mock_agent = Mock()
         mock_gofer_agent.return_value = mock_agent
@@ -178,23 +175,21 @@ class TestContentCapability(TestCase):
             context.uuid,
             ctag=context.reply_queue,
             url=context.url,
-            secret=context.secret,
-            timeout=context.get_timeout(),
-            watchdog=context.watchdog,
+            transport=context.transport,
+            authenticator=mock_authenticator(),
             any=context.details)
 
         mock_content.update.assert_called_with(units, options)
 
     @patch('pulp.server.agent.direct.pulpagent.Agent')
-    def test_uninstall(self, mock_gofer_agent):
+    @patch('pulp.server.agent.direct.pulpagent.Authenticator')
+    def test_uninstall(self, mock_authenticator, mock_gofer_agent):
         context = Mock()
         context.uuid = '123'
         context.url = 'http://broker.com'
-        context.secret = '123-secret'
+        context.transport = 'qpid'
         context.details = {'task_id': '4567'}
-        context.get_timeout = Mock(return_value=90)
         context.reply_queue = 'pulp.task'
-        context.watchdog = 'pulp-watchdog'
 
         mock_agent = Mock()
         mock_gofer_agent.return_value = mock_agent
@@ -210,9 +205,8 @@ class TestContentCapability(TestCase):
             context.uuid,
             ctag=context.reply_queue,
             url=context.url,
-            secret=context.secret,
-            timeout=context.get_timeout(),
-            watchdog=context.watchdog,
+            transport=context.transport,
+            authenticator=mock_authenticator(),
             any=context.details)
 
         mock_content.uninstall.assert_called_with(units, options)
@@ -221,11 +215,12 @@ class TestContentCapability(TestCase):
 class TestProfileCapability(TestCase):
 
     @patch('pulp.server.agent.direct.pulpagent.Agent')
-    def test_send(self, mock_gofer_agent):
+    @patch('pulp.server.agent.direct.pulpagent.Authenticator')
+    def test_send(self, mock_authenticator, mock_gofer_agent):
         context = Mock()
         context.uuid = '123'
         context.url = 'http://broker.com'
-        context.secret = '123-secret'
+        context.transport = 'qpid'
 
         mock_agent = Mock()
         mock_gofer_agent.return_value = mock_agent
@@ -234,18 +229,24 @@ class TestProfileCapability(TestCase):
 
         Profile.send(context)
 
-        mock_gofer_agent.assert_called_with(context.uuid, url=context.url, secret=context.secret)
+        mock_gofer_agent.assert_called_with(
+            context.uuid,
+            url=context.url,
+            transport=context.transport,
+            authenticator=mock_authenticator())
+
         mock_profile.send.assert_called_with()
 
 
 class TestAdminCapability(TestCase):
 
     @patch('pulp.server.agent.direct.pulpagent.Agent')
-    def test_send(self, mock_gofer_agent):
+    @patch('pulp.server.agent.direct.pulpagent.Authenticator')
+    def test_send(self, mock_authenticator, mock_gofer_agent):
         context = Mock()
         context.uuid = '123'
         context.url = 'http://broker.com'
-        context.secret = '123-secret'
+        context.transport = 'qpid'
 
         task_id = '5678'
         criteria = {'match': {'task_id': task_id}}
@@ -259,5 +260,10 @@ class TestAdminCapability(TestCase):
         agent.cancel(context, task_id)
 
         mock_gofer_agent.assert_called_with(
-            context.uuid, url=context.url, secret=context.secret, async=True)
+            context.uuid,
+            url=context.url,
+            transport=context.transport,
+            authenticator=mock_authenticator(),
+            async=True)
+
         mock_admin.cancel.assert_called_with(criteria=criteria)

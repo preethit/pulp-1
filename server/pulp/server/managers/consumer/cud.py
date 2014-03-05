@@ -43,27 +43,31 @@ class ConsumerManager(object):
     Performs consumer related CRUD operations
     """
     @staticmethod
-    def register(consumer_id, display_name=None,
-                 description=None, notes=None, capabilities=None, rsa_key=None):
+    def register(consumer_id,
+                 display_name=None,
+                 description=None,
+                 notes=None,
+                 capabilities=None,
+                 rsa_pub=None):
         """
         Registers a new Consumer
 
-        :param consumer_id:        unique identifier for the consumer
-        :type  consumer_id:        str
-        :param rsa_key:            The consumer public key used for message authentication.
-        :type rsa_key:             str
-        :param display_name:       user-friendly name for the consumer
-        :type  display_name:       str
-        :param description:        user-friendly text describing the consumer
-        :type  description:        str
-        :param notes:              key-value pairs to pragmatically tag the consumer
-        :type  notes:              dict
-        :param capabilities:       operations permitted on the consumer
-        :type  capabilities:       dict
+        :param consumer_id: unique identifier for the consumer
+        :type  consumer_id: str
+        :param rsa_pub: The consumer public key used for message authentication.
+        :type rsa_pub: str
+        :param display_name: user-friendly name for the consumer
+        :type  display_name: str
+        :param description:  user-friendly text describing the consumer
+        :type  description: str
+        :param notes: key-value pairs to pragmatically tag the consumer
+        :type  notes: dict
+        :param capabilities: operations supported on the consumer
+        :type  capabilities: dict
+        :raises DuplicateResource: if there is already a consumer or a used with the requested ID
+        :raises InvalidValue: if any of the fields is unacceptable
         :return: A tuple of: (consumer, certificate)
         :rtype: tuple
-        :raises DuplicateResource: if there is already a consumer or a used with the requested ID
-        :raises InvalidValue:      if any of the fields is unacceptable
         """
         if not is_consumer_id_valid(consumer_id):
             raise InvalidValue(['id'])
@@ -89,7 +93,7 @@ class ConsumerManager(object):
         key, certificate = cert_gen_manager.make_cert(consumer_id, expiration_date)
 
         # Creation
-        consumer = Consumer(consumer_id, display_name, description, notes, capabilities, rsa_key)
+        consumer = Consumer(consumer_id, display_name, description, notes, capabilities, rsa_pub)
         collection.save(consumer, safe=True)
 
         factory.consumer_history_manager().record_event(consumer_id, 'consumer_registered')

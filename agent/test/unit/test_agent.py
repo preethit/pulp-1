@@ -13,10 +13,11 @@
 
 import os
 
-from hashlib import sha256
 from unittest import TestCase
 
 from mock import patch, Mock
+from M2Crypto import RSA, BIO
+from gofer.messaging.auth import ValidationFailed
 
 from pulp.common.config import Config
 
@@ -40,73 +41,189 @@ TEST_ID_CERT_FILE = 'test-cert'
 CERT_PATH = os.path.join(TEST_ID_CERT_DIR, TEST_ID_CERT_FILE)
 
 
+RSA_KEY = """
+-----BEGIN RSA PRIVATE KEY-----
+MIICWwIBAAKBgQDbZu3/ml//XLdb+n8fMklr3CkpBYfIqYFGQzcfDyIBGJUrWZRQ
+gwkQn2P9J8QgVyNSrByFN1DbEJvrY9Lo6kzqy8flh9Ws1GKMRfqJZk99/Zae/Wbn
+9dQqa9EYrMZR3pO5UMmpSRFzZNTWEvmP4WAP4fque1VQJiUwXnMkTSO7cQIDAQAB
+AoGAQdtrpUXZevWBtIJElkCp+U5krIOUdo8q1sRmT1RjiKCwZgrFkkVC+1Jc2SiO
+noaJe89d4D7ybk9V/hpAvNlXrLSc+Gaq8xEOITiiAE1G09Ojc9Q0SFxhW9Sugq/T
+dw44QSxA2wJ8zo9nImwKAEAzt6lDOaCQ2qZrZFkSUSYbboECQQDytgjrK9FsrMSF
+yz88UCPOo6BLNoXoDgN5SKWEPn+Q3hz+qRy6ka9YDUaxx19C0jiZRAYeg96Zh2MG
+CAWWfRCVAkEA52ovBITgWaPYHJcSlIK4rkgpYnD5atLZuajwhnWeBQ0sPhy06CNO
+Cp+PIVIYVWtHcmxJk1aOFYsG29G9rg38bQJAMLI/Ndfzy8caIvH1fQdjN8lylsSY
+t0dggQwHUXIsrAc0cA/EGNa0BImdXnvu6/w7qNySEbtJhSo5vvMLE/eBxQJATm9y
+EkELXban+EDIPmf0OrYguMn779YZj9EP/TL+ZU3qsf6+3nOg7v7X335Y2xLqe4Dy
+iyrqK6kcoQL9HHKHHQJAT5jTKawl830Zx85t/j42NNhHsMyXXgtmz4lYyhb/UCik
+8vRK7LSjxYvCgnFT+wXT9hOjfEW+AnOKYJTHai4BNw==
+-----END RSA PRIVATE KEY-----
+"""
+
+OTHER_KEY = """
+-----BEGIN RSA PRIVATE KEY-----
+MIICXQIBAAKBgQDcx31TTh+mcm7v3NtQrkfHL5KgRXv7uDCLI56vULYSp5HtC9F9
+Jph2DT8l/XVXj0L5WMPP12VRZkmmgR9LDF5iHXnWE47Dy/6Midz4KIV1Vx7O/LdX
+btzq0lYRcaEofZPSfapf7hpNMhl3G5ioUvXp6vbh9EbGLetdXeVeqii53QIDAQAB
+AoGBAMiLBJIJIsLEq3SB/01YIacS1XNz6l0KQD4DCv9gpyJmyCy0UYQG7PI+sh/G
+DTKN1V49fRBsLYI1Ea2HGG/JOmjhQOxjz/F1jAMbQfeTXhu/JVYlhDgOK3nC+DnF
+jmJ2FfqUxr/eE87IzUF5Qm4TVffKwCSaxQ3u3xkbk9+oBkMBAkEA8OVxcTyKmgho
+9hk0PHPuFIeWAgKf5015oLUZPPeYYeACiZGUnvP1BdiO9QpZyIPaEiySDb2jv0ZR
+kJpHW7qpPQJBAOqfJ3Q+6v/u9pKmjcH8kEtIB8Mtnm5WIs4cLhlChI4xbm1Gawvp
+Lly6GSNUvsFVxyaMrqaMQxtKdHg4MtZxHSECQBpVOn1iXNRRrweX4bnqAlCEMcWu
+e8RRF8aVhVjAyAuK7TwUieaGTHaDIb1vkDj3ENODw8N0w32ZNjlUZBCG6xECQETP
+ms2wKlIXrr+CE69iOJurq4Ml3QJ1Rs32W9rStHfTrZRlA75BjHRrrDW9hBjF5Ju8
+xPhZyNC3PIOJz/cuw6ECQQCbfqV4YWiW0j2t/dotJjA0S/QdQYJcUbo/kNUar65v
+ZdgAs+Krt4gDkn34BF5009pZf0IBANSPMeqvw4BWr3G4
+-----END RSA PRIVATE KEY-----
+"""
+
+RSA_PUB = """
+-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDbZu3/ml//XLdb+n8fMklr3Ckp
+BYfIqYFGQzcfDyIBGJUrWZRQgwkQn2P9J8QgVyNSrByFN1DbEJvrY9Lo6kzqy8fl
+h9Ws1GKMRfqJZk99/Zae/Wbn9dQqa9EYrMZR3pO5UMmpSRFzZNTWEvmP4WAP4fqu
+e1VQJiUwXnMkTSO7cQIDAQAB
+-----END PUBLIC KEY-----
+"""
+
+
 class PluginTest(TestCase):
 
     @staticmethod
     @patch('pulp.client.consumer.config.read_config')
     def load_plugin(mock_read):
         mock_read.return_value = Config()
-        return __import__('pulp.agent.gofer.pulpplugin', {}, {}, ['pulpplugin'])
+        plugin = __import__('pulp.agent.gofer.pulpplugin', {}, {}, ['pulpplugin'])
+        reload(plugin)
+        return plugin
 
     def setUp(self):
         self.plugin = PluginTest.load_plugin()
 
 
-class TestUtils(PluginTest):
+class TestAuthentication(PluginTest):
 
-    @patch('pulp.common.bundle.Bundle.read', return_value=TEST_BUNDLE)
-    def test_secret(self, fake_read):
+    @patch('__builtin__.open')
+    def test_get_key(self, mock_open):
         test_conf = {
-            'filesystem': {
-                'id_cert_dir': TEST_ID_CERT_DIR,
-                'id_cert_filename': TEST_ID_CERT_FILE
+            'server': {
+                'rsa_pub': '/etc/pki/pulp/consumer/rsa_pub.pem'
+            },
+            'messaging': {
+                'rsa_key': '/etc/pki/pulp/rsa.pem',
             }
         }
+
         self.plugin.pulp_conf.update(test_conf)
 
+        mock_fp = Mock()
+        mock_fp.read = Mock(return_value=RSA_KEY)
+        mock_open.return_value = mock_fp
+
         # test
-        secret = self.plugin.secret()
+
+        key = self.plugin.Authenticator.rsa_key()
 
         # validation
-        # the secret is the sha256 of the certificate part of the bundle.
+        mock_open.assert_called_with(test_conf['messaging']['rsa_key'])
+        mock_fp.close.assert_called_with()
+        self.assertTrue(isinstance(key, RSA.RSA))
 
-        h = sha256()
-        lines = TEST_BUNDLE.split('\n')
-        certificate = '\n'.join(lines[4:7])
-        h.update(certificate)
-        self.assertTrue(fake_read.called)
-        self.assertEqual(h.hexdigest(), secret)
-
-    @patch('pulp.common.bundle.Bundle.read', side_effect=ValueError)
-    def test_secret_failed(self, *unused):
+    @patch('__builtin__.open')
+    def test_get_pub_key(self, mock_open):
         test_conf = {
-            'filesystem': {
-                'id_cert_dir': TEST_ID_CERT_DIR,
-                'id_cert_filename': TEST_ID_CERT_FILE
+            'server': {
+                'rsa_pub': '/etc/pki/pulp/consumer/rsa_pub.pem'
+            },
+            'messaging': {
+                'rsa_key': '/etc/pki/pulp/rsa.pem',
             }
         }
+
         self.plugin.pulp_conf.update(test_conf)
 
-        # test
-        secret = self.plugin.secret()
-
-        # validation
-        self.assertTrue(secret is None)
-
-    def test_secret_unregistered(self, *unused):
-        test_conf = {
-            'filesystem': {
-                'id_cert_dir': TEST_ID_CERT_DIR,
-                'id_cert_filename': TEST_ID_CERT_FILE
-            }
-        }
-        self.plugin.pulp_conf.update(test_conf)
+        mock_fp = Mock()
+        mock_fp.read = Mock(return_value=RSA_PUB)
+        mock_open.return_value = mock_fp
 
         # test
-        secret = self.plugin.secret()
+
+        key = self.plugin.Authenticator.rsa_pub()
 
         # validation
-        self.assertTrue(secret is None)
+
+        mock_open.assert_called_with(test_conf['server']['rsa_pub'])
+        mock_fp.close.assert_called_with()
+
+        self.assertTrue(isinstance(key, RSA.RSA))
+
+    @patch('pulp.agent.gofer.pulpplugin.Authenticator.rsa_key')
+    def test_signing(self, mock_get):
+        message = 'hello'
+        key = RSA.load_key_bio(BIO.MemoryBuffer(RSA_KEY))
+
+        mock_key = Mock()
+        mock_key.sign = Mock(side_effect=key.sign)
+        mock_get.return_value = mock_key
+
+        # test
+        auth = self.plugin.Authenticator()
+        signature = auth.sign(message)
+
+        #validation
+
+        expected = key.sign(message)
+
+        mock_get.assert_called_with()
+        mock_key.sign.assert_called_with(message)
+        self.assertEqual(expected, signature)
+
+    @patch('pulp.agent.gofer.pulpplugin.Authenticator.rsa_pub')
+    def test_validated(self, mock_get):
+        uuid = 'test-uuid'
+        message = 'hello'
+        key = RSA.load_key_bio(BIO.MemoryBuffer(RSA_KEY))
+
+        mock_get.return_value = RSA.load_pub_key_bio(BIO.MemoryBuffer(RSA_PUB))
+
+        # test
+
+        signature = key.sign(message)
+        authenticator = self.plugin.Authenticator()
+        authenticator.validate(uuid, message, signature)
+
+    @patch('pulp.agent.gofer.pulpplugin.Authenticator.rsa_pub')
+    def test_not_valid(self, mock_get):
+        uuid = 'test-uuid'
+        message = 'hello'
+        key = RSA.load_key_bio(BIO.MemoryBuffer(OTHER_KEY))
+
+        mock_get.return_value = RSA.load_pub_key_bio(BIO.MemoryBuffer(RSA_PUB))
+
+        # test
+
+        signature = key.sign(message)
+        authenticator = self.plugin.Authenticator()
+        self.assertRaises(ValidationFailed, authenticator.validate, uuid, message, signature)
+
+    @patch('pulp.agent.gofer.pulpplugin.Authenticator.rsa_pub')
+    def test_rsa_error_raised(self, mock_get):
+        uuid = 'test-uuid'
+        message = 'hello'
+        key = RSA.load_key_bio(BIO.MemoryBuffer(OTHER_KEY))
+
+        mock_pub = Mock()
+        mock_pub.verify = Mock(return_value=False)
+        mock_get.return_value = mock_pub
+
+        # test
+
+        signature = key.sign(message)
+        authenticator = self.plugin.Authenticator()
+        self.assertRaises(ValidationFailed, authenticator.validate, uuid, message, signature)
+
+
+class TestBundle(PluginTest):
 
     @patch('pulp.common.bundle.Bundle.cn', return_value=TEST_CN)
     def test_bundle_cn(self, *unused):
@@ -144,6 +261,9 @@ class TestUtils(PluginTest):
         # validation
         self.assertEqual(bundle.path, CERT_PATH)
         self.assertEqual(cn, None)
+
+
+class TestBindings(PluginTest):
 
     @patch('pulp.common.bundle.Bundle.cn', return_value=TEST_CN)
     @patch('pulp.agent.gofer.pulpplugin.Bindings.__init__')
