@@ -31,8 +31,6 @@ class Services:
     :type REPLY_QUEUE: str
     :cvar reply_handler: Asynchronous RMI reply listener.
     :type reply_handler: ReplyHandler
-    :cvar heartbeat_listener: Agent heartbeat listener.
-    :type heartbeat_listener: HeartbeatListener
     """
 
     reply_handler = None
@@ -130,6 +128,17 @@ class ReplyHandler(Listener):
         self.consumer.start(self)
         log.info('Task reply handler, started.')
 
+    def accepted(self, reply):
+        """
+        Notification that an RMI has started executing in the agent.
+        The task status is updated in the pulp DB.
+        :param reply: A status reply object.
+        :type reply: gofer.rmi.async.Started
+        """
+        call_context = reply.any
+        task_id = call_context['task_id']
+        TaskStatusManager.set_task_accepted(task_id)
+
     def started(self, reply):
         """
         Notification that an RMI has started executing in the agent.
@@ -140,6 +149,28 @@ class ReplyHandler(Listener):
         call_context = reply.any
         task_id = call_context['task_id']
         TaskStatusManager.set_task_started(task_id)
+
+    def rejected(self, reply):
+        """
+        Notification (reply) indicating an RMI request has been rejected.
+        This information used to update the task status.
+        :param reply: A rejected reply object.
+        :type reply: gofer.rmi.async.Rejected
+        """
+        log.info('Task RMI (rejected)\n%s', reply)
+
+        call_context = dict(reply.any)
+        action = call_context.get('action')
+        task_id = call_context['task_id']
+
+        TaskStatusManager.set_task_failed(task_id)
+
+        if action == 'bind':
+            ReplyHandler._bind_failed(task_id, call_context)
+            return
+        if action == 'unbind':
+            ReplyHandler._unbind_failed(task_id, call_context)
+            return
 
     def succeeded(self, reply):
         """

@@ -16,7 +16,7 @@ from mock import patch, Mock
 from gofer.messaging.model import Document
 from gofer.messaging import Broker
 from gofer.transport.broker import URL
-from gofer.rmi.async import Started, Succeeded, Failed, Progress
+from gofer.rmi.async import Accepted, Rejected, Started, Succeeded, Failed, Progress
 
 from pulp.server.config import config as pulp_conf
 from pulp.server.agent.direct.services import Services, ReplyHandler
@@ -64,28 +64,50 @@ class TestReplyHandler(TestCase):
             'distributor_id': dist_id
         }
         result = dict(retval=dispatch_report)
-        envelope = Document(routing=['A', 'B'], result=result, any=call_context)
-        reply = Succeeded(envelope)
+        document = Document(routing=['A', 'B'], result=result, any=call_context)
+        reply = Succeeded(document)
         handler = ReplyHandler('')
         handler.succeeded(reply)
 
         # validate task updated
         mock_task_succeeded.assert_called_with(task_id, dispatch_report)
 
+    @patch('pulp.server.async.task_status_manager.TaskStatusManager.set_task_accepted')
+    def test_accepted(self, mock_task_accepted):
+        task_id = 'task_1'
+        call_context = {
+            'task_id': task_id
+        }
+        document = Document(routing=['A', 'B'], any=call_context)
+        reply = Accepted(document)
+        handler = ReplyHandler('')
+        handler.accepted(reply)
+
+        # validate task updated
+        mock_task_accepted.assert_called_with(task_id)
+
+    @patch('pulp.server.async.task_status_manager.TaskStatusManager.set_task_failed')
+    def test_rejected(self, mock_task_failed):
+        task_id = 'task_1'
+        call_context = {
+            'task_id': task_id,
+        }
+        document = Document(routing=['A', 'B'], any=call_context)
+        reply = Rejected(document)
+        handler = ReplyHandler('')
+        handler.rejected(reply)
+
+        # validate task updated
+        mock_task_failed.assert_called_with(task_id)
+
     @patch('pulp.server.async.task_status_manager.TaskStatusManager.set_task_started')
     def test_started(self, mock_task_started):
         task_id = 'task_1'
-        consumer_id = 'consumer_1'
-        repo_id = 'repo_1'
-        dist_id = 'dist_1'
         call_context = {
             'task_id': task_id,
-            'consumer_id': consumer_id,
-            'repo_id': repo_id,
-            'distributor_id': dist_id
         }
-        envelope = Document(routing=['A', 'B'], any=call_context)
-        reply = Started(envelope)
+        document = Document(routing=['A', 'B'], any=call_context)
+        reply = Started(document)
         handler = ReplyHandler('')
         handler.started(reply)
 
@@ -97,8 +119,8 @@ class TestReplyHandler(TestCase):
         task_id = 'task_1'
         call_context = {'task_id': task_id}
         progress_report = {'step': 'step-1'}
-        envelope = Document(routing=['A', 'B'], any=call_context, details=progress_report)
-        reply = Progress(envelope)
+        document = Document(routing=['A', 'B'], any=call_context, details=progress_report)
+        reply = Progress(document)
         handler = ReplyHandler('')
         handler.progress(reply)
 
@@ -125,8 +147,8 @@ class TestReplyHandler(TestCase):
             xstate={'trace': 'stack-trace'},
             xargs=[]
         )
-        envelope = Document(routing=['A', 'B'], result=raised, any=call_context)
-        reply = Failed(envelope)
+        document = Document(routing=['A', 'B'], result=raised, any=call_context)
+        reply = Failed(document)
         handler = ReplyHandler('')
         handler.failed(reply)
 
@@ -225,8 +247,8 @@ class TestReplyHandler(TestCase):
         }
         dispatch_report = dict(succeeded=True)
         result = Document(retval=dispatch_report)
-        envelope = Document(routing=['A', 'B'], result=result, any=call_context)
-        reply = Succeeded(envelope)
+        document = Document(routing=['A', 'B'], result=result, any=call_context)
+        reply = Succeeded(document)
         handler = ReplyHandler('')
         handler.succeeded(reply)
 
@@ -251,8 +273,8 @@ class TestReplyHandler(TestCase):
         }
         dispatch_report = dict(succeeded=False)
         result = Document(retval=dispatch_report)
-        envelope = Document(routing=['A', 'B'], result=result, any=call_context)
-        reply = Succeeded(envelope)
+        document = Document(routing=['A', 'B'], result=result, any=call_context)
+        reply = Succeeded(document)
         handler = ReplyHandler('')
         handler.succeeded(reply)
 
@@ -277,8 +299,8 @@ class TestReplyHandler(TestCase):
         }
         dispatch_report = dict(succeeded=True)
         result = Document(retval=dispatch_report)
-        envelope = Document(routing=['A', 'B'], result=result, any=call_context)
-        reply = Succeeded(envelope)
+        document = Document(routing=['A', 'B'], result=result, any=call_context)
+        reply = Succeeded(document)
         handler = ReplyHandler('')
         handler.succeeded(reply)
 
@@ -303,8 +325,8 @@ class TestReplyHandler(TestCase):
         }
         dispatch_report = dict(succeeded=False)
         result = Document(retval=dispatch_report)
-        envelope = Document(routing=['A', 'B'], result=result, any=call_context)
-        reply = Succeeded(envelope)
+        document = Document(routing=['A', 'B'], result=result, any=call_context)
+        reply = Succeeded(document)
         handler = ReplyHandler('')
         handler.succeeded(reply)
 
@@ -334,13 +356,37 @@ class TestReplyHandler(TestCase):
             xstate={'trace': 'stack-trace'},
             xargs=[]
         )
-        envelope = Document(routing=['A', 'B'], result=raised, any=call_context)
-        reply = Failed(envelope)
+        document = Document(routing=['A', 'B'], result=raised, any=call_context)
+        reply = Failed(document)
         handler = ReplyHandler('')
         handler.failed(reply)
 
         # validate task updated
         mock_task_failed.assert_called_with(task_id, 'stack-trace')
+        # validate bind action updated
+        mock_bind_failed.assert_called_with(task_id, call_context)
+
+    @patch('pulp.server.agent.direct.services.ReplyHandler._bind_failed')
+    @patch('pulp.server.async.task_status_manager.TaskStatusManager.set_task_failed')
+    def test_bind_rejected(self, mock_task_failed, mock_bind_failed):
+        task_id = 'task_1'
+        consumer_id = 'consumer_1'
+        repo_id = 'repo_1'
+        dist_id = 'dist_1'
+        call_context = {
+            'action': 'bind',
+            'task_id': task_id,
+            'consumer_id': consumer_id,
+            'repo_id': repo_id,
+            'distributor_id': dist_id
+        }
+        document = Document(routing=['A', 'B'], status='rejected', any=call_context)
+        reply = Rejected(document)
+        handler = ReplyHandler('')
+        handler.rejected(reply)
+
+        # validate task updated
+        mock_task_failed.assert_called_with(task_id)
         # validate bind action updated
         mock_bind_failed.assert_called_with(task_id, call_context)
 
@@ -365,12 +411,36 @@ class TestReplyHandler(TestCase):
             xstate={'trace': 'stack-trace'},
             xargs=[]
         )
-        envelope = Document(routing=['A', 'B'], result=raised, any=call_context)
-        reply = Failed(envelope)
+        document = Document(routing=['A', 'B'], result=raised, any=call_context)
+        reply = Failed(document)
         handler = ReplyHandler('')
         handler.failed(reply)
 
         # validate task updated
         mock_task_failed.assert_called_with(task_id, 'stack-trace')
+        # validate bind action updated
+        mock_unbind_failed.assert_called_with(task_id, call_context)
+
+    @patch('pulp.server.agent.direct.services.ReplyHandler._unbind_failed')
+    @patch('pulp.server.async.task_status_manager.TaskStatusManager.set_task_failed')
+    def test_unbind_rejected(self, mock_task_failed, mock_unbind_failed):
+        task_id = 'task_1'
+        consumer_id = 'consumer_1'
+        repo_id = 'repo_1'
+        dist_id = 'dist_1'
+        call_context = {
+            'action': 'unbind',
+            'task_id': task_id,
+            'consumer_id': consumer_id,
+            'repo_id': repo_id,
+            'distributor_id': dist_id
+        }
+        document = Document(routing=['A', 'B'], status='rejected', any=call_context)
+        reply = Rejected(document)
+        handler = ReplyHandler('')
+        handler.rejected(reply)
+
+        # validate task updated
+        mock_task_failed.assert_called_with(task_id)
         # validate bind action updated
         mock_unbind_failed.assert_called_with(task_id, call_context)

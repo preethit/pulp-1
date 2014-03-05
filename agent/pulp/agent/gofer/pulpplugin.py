@@ -49,9 +49,19 @@ cfg = pulp_conf.graph()
 
 
 class Authenticator(object):
+    """
+    Provides message authentication using RSA keys.
+    The server and the agent sign sent messages using their private keys
+    and validate received messages using each others public keys.
+    """
 
     @staticmethod
     def rsa_key():
+        """
+        Get our private RSA key.
+        :return: Our private RSA key.
+        :rtype: RSA.RSA
+        """
         fp = open(cfg.messaging.rsa_key)
         try:
             pem = fp.read()
@@ -62,6 +72,11 @@ class Authenticator(object):
 
     @staticmethod
     def rsa_pub():
+        """
+        Get the server's public RSA key.
+        :return: The server's public RSA key.
+        :rtype: RSA.RSA
+        """
         fp = open(cfg.server.rsa_pub)
         try:
             pem = fp.read()
@@ -71,11 +86,28 @@ class Authenticator(object):
             fp.close()
 
     def sign(self, message):
+        """
+        Sign the specified message.
+        :param message: An AMQP message body.
+        :type message: str
+        :return: The message signature.
+        :rtype: str
+        """
         key = self.rsa_key()
         signature = key.sign(message)
         return signature
 
     def validate(self, uuid, message, signature):
+        """
+        Validate the specified message and signature.
+        :param uuid: The uuid of the sender.
+        :type uuid: str
+        :param message: An AMQP message body.
+        :type message: str
+        :param signature: A message signature.
+        :type signature: str
+        :raises ValidationFailed: when message is not valid.
+        """
         key = self.rsa_pub()
         try:
             if not key.verify(message, signature):
