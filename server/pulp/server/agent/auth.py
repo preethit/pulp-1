@@ -41,7 +41,7 @@ class Authenticator(object):
         :return: Our RSA key.
         :rtype: RSA.RSA
         """
-        path = pulp_conf.get('messaging', 'rsa_key')
+        path = pulp_conf.get('authentication', 'rsa_key')
         with open(path) as fp:
             pem = fp.read()
             bfr = BIO.MemoryBuffer(pem)

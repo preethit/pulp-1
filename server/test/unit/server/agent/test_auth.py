@@ -65,9 +65,10 @@ e1VQJiUwXnMkTSO7cQIDAQAB
 """
 
 TEST_CONF = """
+[authentication]
+rsa_key: /etc/pki/pulp/rsa.key
 [messaging]
 auth_enabled: true
-rsa_key: /etc/pki/pulp/rsa.pem
 """
 
 PULP_CONF = ConfigParser()
@@ -102,7 +103,7 @@ class TestAuthentication(TestCase):
 
         # validation
 
-        mock_open.assert_called_with(PULP_CONF.get('messaging', 'rsa_key'))
+        mock_open.assert_called_with(PULP_CONF.get('authentication', 'rsa_key'))
         self.assertTrue(mock_fp.__exit__.called)
         self.assertTrue(isinstance(key, RSA.RSA))
 

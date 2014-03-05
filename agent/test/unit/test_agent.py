@@ -107,9 +107,9 @@ class TestAuthentication(PluginTest):
     def test_get_key(self, mock_open):
         test_conf = {
             'server': {
-                'rsa_pub': '/etc/pki/pulp/consumer/rsa_pub.pem'
+                'rsa_pub': '/etc/pki/pulp/consumer/server/rsa_pub.pem'
             },
-            'messaging': {
+            'authentication': {
                 'rsa_key': '/etc/pki/pulp/rsa.pem',
             }
         }
@@ -125,7 +125,7 @@ class TestAuthentication(PluginTest):
         key = self.plugin.Authenticator.rsa_key()
 
         # validation
-        mock_open.assert_called_with(test_conf['messaging']['rsa_key'])
+        mock_open.assert_called_with(test_conf['authentication']['rsa_key'])
         mock_fp.close.assert_called_with()
         self.assertTrue(isinstance(key, RSA.RSA))
 
@@ -133,7 +133,7 @@ class TestAuthentication(PluginTest):
     def test_get_pub_key(self, mock_open):
         test_conf = {
             'server': {
-                'rsa_pub': '/etc/pki/pulp/consumer/rsa_pub.pem'
+                'rsa_pub': '/etc/pki/pulp/consumer/server/rsa_pub.pem'
             },
             'messaging': {
                 'rsa_key': '/etc/pki/pulp/rsa.pem',

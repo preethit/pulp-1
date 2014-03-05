@@ -488,6 +488,7 @@ Requires: python-%{name}-bindings = %{pulp_version}
 Requires: python-%{name}-agent-lib = %{pulp_version}
 Requires: %{name}-consumer-client = %{pulp_version}
 Requires: gofer >= 1.0.0
+Requires: m2crypto
 
 %description agent
 The pulp agent, used to provide remote command & control and

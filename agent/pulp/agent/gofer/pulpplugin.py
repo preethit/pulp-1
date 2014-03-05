@@ -62,7 +62,7 @@ class Authenticator(object):
         :return: Our private RSA key.
         :rtype: RSA.RSA
         """
-        fp = open(cfg.messaging.rsa_key)
+        fp = open(cfg.authentication.rsa_key)
         try:
             pem = fp.read()
             bfr = BIO.MemoryBuffer(pem)

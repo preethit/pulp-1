@@ -21,6 +21,10 @@ config = None # ConfigParser.SafeConfigParser instance
 
 # to guarantee that a section and/or setting exists, add a default value here
 _default_values = {
+    'authentication': {
+        'rsa_key': '/etc/pki/pulp/rsa.key',
+        'rsa_pub': '/etc/pki/pulp/rsa_pub.key',
+    },
     'consumer_history': {
         'lifetime': '180', # in days
     },
@@ -61,12 +65,10 @@ _default_values = {
     'messaging': {
         'url': 'tcp://localhost:5672',
         'transport': 'qpid',
+        'auth_enabled': 'true',
         'cacert': '/etc/pki/qpid/ca/ca.crt',
         'clientcert': '/etc/pki/qpid/client/client.pem',
-        'auth_enabled': 'true',
-        'rsa_key': '/etc/pki/pulp/rsa.key',
-        'rsa_key_pub': '/etc/pki/pulp/rsa_pub.key',
-        'topic_exchange': 'amq.topic',
+        'topic_exchange': 'amq.topic'
     },
     'scheduler': {
         'dispatch_interval': '30',
@@ -78,8 +80,6 @@ _default_values = {
         'user_cert_expiration': '7',
         'consumer_cert_expiration': '3650',
         'serial_number_path': '/var/lib/pulp/sn.dat',
-        'rsa_key': '/etc/pki/pulp/rsa.key',
-        'rsa_key_pub': '/etc/pki/pulp/rsa_pub.key',
     },
     'server': {
         'server_name': socket.gethostname(),
